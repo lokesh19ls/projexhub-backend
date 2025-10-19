@@ -15,8 +15,17 @@ async function migrate() {
   });
   
   try {
-    // Read schema file
-    const schemaPath = path.join(__dirname, 'schema.sql');
+    // Read schema file - try multiple possible locations
+    let schemaPath = path.join(__dirname, 'schema.sql');
+    if (!fs.existsSync(schemaPath)) {
+      // Try src directory
+      schemaPath = path.join(__dirname, '..', 'src', 'database', 'schema.sql');
+    }
+    if (!fs.existsSync(schemaPath)) {
+      // Try root directory
+      schemaPath = path.join(__dirname, '..', '..', 'src', 'database', 'schema.sql');
+    }
+    
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
     // Execute schema
