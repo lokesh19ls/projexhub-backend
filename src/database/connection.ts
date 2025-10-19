@@ -6,7 +6,7 @@ dotenv.config();
 // Use DATABASE_URL if provided (for Render/Heroku-style deployments)
 // Otherwise build from individual components
 const getConnectionString = () => {
-  // Check if full connection string is provided
+  // Check if full connection string is provided (Render/Heroku)
   if (process.env.DATABASE_URL) {
     return process.env.DATABASE_URL;
   }
@@ -18,9 +18,10 @@ const getConnectionString = () => {
   const user = process.env.DB_USER || 'postgres';
   const password = process.env.DB_PASSWORD || '';
   
-  // Use connection string for Supabase to avoid IPv6 issues
-  if (host.includes('supabase')) {
-    return `postgresql://${user}:${password}@${host}:${port}/${database}?sslmode=require`;
+  // Use connection string for cloud databases
+  if (host.includes('supabase') || host.includes('dpg-') || host.includes('render')) {
+    // Don't add sslmode to connection string, we'll handle it in config
+    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }
   
   return null;
@@ -34,6 +35,7 @@ const config: PoolConfig = connectionString ? {
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
+  ssl: connectionString.includes('supabase') ? { rejectUnauthorized: false } : undefined,
 } : {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
