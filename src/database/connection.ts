@@ -3,8 +3,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Build connection string for Supabase (forces IPv4)
-const buildConnectionString = () => {
+// Use DATABASE_URL if provided (for Render/Heroku-style deployments)
+// Otherwise build from individual components
+const getConnectionString = () => {
+  // Check if full connection string is provided
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL;
+  }
+  
+  // Build from individual components
   const host = process.env.DB_HOST || 'localhost';
   const port = process.env.DB_PORT || '5432';
   const database = process.env.DB_NAME || 'postgres';
@@ -19,7 +26,7 @@ const buildConnectionString = () => {
   return null;
 };
 
-const connectionString = buildConnectionString();
+const connectionString = getConnectionString();
 
 // Supabase connection configuration
 const config: PoolConfig = connectionString ? {
