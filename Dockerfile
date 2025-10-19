@@ -29,8 +29,8 @@ RUN npm ci --only=production
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy schema.sql for migrations (from source, not builder)
-COPY src/database/schema.sql ./src/database/schema.sql
+# Copy schema.sql for migrations to dist/database directory
+COPY src/database/schema.sql ./dist/database/schema.sql
 
 # Create uploads directory
 RUN mkdir -p uploads
