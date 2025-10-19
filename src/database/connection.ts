@@ -3,8 +3,31 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Build connection string for Supabase (forces IPv4)
+const buildConnectionString = () => {
+  const host = process.env.DB_HOST || 'localhost';
+  const port = process.env.DB_PORT || '5432';
+  const database = process.env.DB_NAME || 'postgres';
+  const user = process.env.DB_USER || 'postgres';
+  const password = process.env.DB_PASSWORD || '';
+  
+  // Use connection string for Supabase to avoid IPv6 issues
+  if (host.includes('supabase')) {
+    return `postgresql://${user}:${password}@${host}:${port}/${database}?sslmode=require`;
+  }
+  
+  return null;
+};
+
+const connectionString = buildConnectionString();
+
 // Supabase connection configuration
-const config: PoolConfig = {
+const config: PoolConfig = connectionString ? {
+  connectionString,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+} : {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432'),
   database: process.env.DB_NAME || 'postgres',
@@ -12,7 +35,7 @@ const config: PoolConfig = {
   password: process.env.DB_PASSWORD || '',
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000, // Increased to 10 seconds for Supabase
+  connectionTimeoutMillis: 10000,
   ssl: process.env.DB_HOST?.includes('supabase') ? { rejectUnauthorized: false } : false,
 };
 
