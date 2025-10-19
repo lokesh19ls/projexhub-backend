@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
@@ -21,6 +23,22 @@ import { errorHandler } from './middleware/errorHandler';
 
 // Load environment variables
 dotenv.config();
+
+const execAsync = promisify(exec);
+
+// Run migrations on startup
+async function runMigrations() {
+  try {
+    console.log('🔄 Running database migrations...');
+    const { stdout, stderr } = await execAsync('node dist/database/migrate.js');
+    if (stdout) console.log(stdout);
+    if (stderr) console.error(stderr);
+    console.log('✅ Migrations completed successfully');
+  } catch (error: any) {
+    console.error('⚠️  Migration error:', error.message);
+    console.log('⚠️  Continuing without migrations...');
+  }
+}
 
 const app: Application = express();
 const httpServer = createServer(app);
@@ -87,12 +105,17 @@ app.use((_req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Start server
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-});
+// Start server with migrations
+(async () => {
+  // Run migrations before starting server
+  await runMigrations();
+  
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  });
+})();
 
 export { io };
 
