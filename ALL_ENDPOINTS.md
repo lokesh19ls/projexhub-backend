@@ -1,6 +1,6 @@
 # 🚀 ProjexHub API - Complete Endpoints List
 
-**Base URL:** `http://localhost:3000/api`
+**Base URL:** `https://projexhub-backend.onrender.com/api`
 
 ---
 
@@ -418,7 +418,7 @@ Authorization: Bearer <your_token>
 
 ### Register a Student
 ```bash
-curl -X POST http://localhost:3000/api/auth/register \
+curl -X POST https://projexhub-backend.onrender.com/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -434,7 +434,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 
 ### Login
 ```bash
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST https://projexhub-backend.onrender.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com",
@@ -444,7 +444,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 
 ### Create Project (with token)
 ```bash
-curl -X POST http://localhost:3000/api/projects \
+curl -X POST https://projexhub-backend.onrender.com/api/projects \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
@@ -452,7 +452,7 @@ curl -X POST http://localhost:3000/api/projects \
     "description": "A full-stack e-commerce platform",
     "technology": ["React", "Node.js", "MongoDB"],
     "budget": 5000,
-    "deadline": "2024-06-30"
+    "deadline": "2025-12-31"
   }'
 ```
 
