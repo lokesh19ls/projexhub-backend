@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "db:migrate": "node dist/database/migrate.js",
     "db:seed": "node dist/database/seed.js",
-    "postinstall": "npm run build && npm run db:migrate"
+    "postinstall": "npm run build",
+    "migrate": "node dist/database/migrate.js"
   },
   "keywords": [
     "projexhub",
