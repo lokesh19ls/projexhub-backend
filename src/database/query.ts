@@ -55,7 +55,6 @@ export const query = async (text: string, params?: any[]) => {
       const tableMatch = sql.match(/UPDATE\s+(\w+)/i);
       if (tableMatch) {
         const tableName = tableMatch[1];
-        const whereMatch = sql.match(/WHERE\s+(.+)/i);
         
         // For now, return empty result
         const duration = Date.now() - start;
@@ -79,12 +78,10 @@ export const query = async (text: string, params?: any[]) => {
     }
     
     // Default: return empty result
-    const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: 0 });
+    console.log('Executed query', { text, duration: Date.now() - start, rows: 0 });
     return { rows: [] };
     
   } catch (error) {
-    const duration = Date.now() - start;
     console.error('Query error:', error);
     throw error;
   }

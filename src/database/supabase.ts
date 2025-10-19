@@ -18,7 +18,7 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
 // Test connection
 export const testSupabaseConnection = async () => {
   try {
-    const { data, error } = await supabase.from('users').select('count').limit(1);
+    const { error } = await supabase.from('users').select('count').limit(1);
     if (error && error.code !== 'PGRST116') { // PGRST116 means table doesn't exist yet
       console.error('❌ Supabase connection error:', error.message);
       return false;
@@ -32,7 +32,7 @@ export const testSupabaseConnection = async () => {
 };
 
 // Helper function to execute raw SQL queries (if needed)
-export const executeSQL = async (query: string, params?: any[]) => {
+export const executeSQL = async (_query: string, _params?: any[]) => {
   try {
     // Note: Supabase doesn't support raw SQL queries via the client
     // You'll need to use the REST API or create database functions
