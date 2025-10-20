@@ -59,15 +59,15 @@ export class AuthService {
     return { user, token };
   }
 
-  async login(email: string | undefined, phone: string | undefined, password: string) {
-    if (!email && !phone) {
-      throw new AppError('Email or phone is required', 400);
+  async login(email: string, password: string) {
+    if (!email) {
+      throw new AppError('Email is required', 400);
     }
 
-    // Find user
+    // Find user by email
     const result = await query(
-      `SELECT * FROM users WHERE email = $1 OR phone = $2`,
-      [email || phone, email || phone]
+      `SELECT * FROM users WHERE email = $1`,
+      [email]
     );
 
     if (result.rows.length === 0) {

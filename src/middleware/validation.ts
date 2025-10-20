@@ -22,7 +22,7 @@ export const schemas = {
   register: Joi.object({
     name: Joi.string().min(3).max(100).required(),
     email: Joi.string().email().required(),
-    phone: Joi.string().pattern(/^[0-9]{10}$/).required(),
+    phone: Joi.string().pattern(/^[0-9]{10}$/).optional(),
     password: Joi.string().min(6).required(),
     role: Joi.string().valid('student', 'developer', 'admin').required(),
     college: Joi.string().max(255).optional(),
@@ -32,21 +32,9 @@ export const schemas = {
   }),
 
   login: Joi.object({
-    email: Joi.string().email().optional(),
-    phone: Joi.string().pattern(/^[0-9]{10}$/).optional(),
+    email: Joi.string().email().required(),
     password: Joi.string().required()
-  }).or('email', 'phone'),
-
-  sendOTP: Joi.object({
-    phone: Joi.string().pattern(/^[0-9]{10}$/).optional(),
-    email: Joi.string().email().optional()
-  }).or('phone', 'email'),
-
-  verifyOTP: Joi.object({
-    phone: Joi.string().pattern(/^[0-9]{10}$/).optional(),
-    email: Joi.string().email().optional(),
-    otp: Joi.string().length(6).required()
-  }).or('phone', 'email'),
+  }),
 
   createProject: Joi.object({
     title: Joi.string().min(5).max(255).required(),

@@ -14,7 +14,6 @@ Content-Type: application/json
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "phone": "9876543210",
   "password": "password123",
   "role": "student",
   "college": "MIT",
@@ -23,6 +22,8 @@ Content-Type: application/json
   "skills": ["JavaScript", "React"]
 }
 ```
+
+**Note:** Phone is optional for registration.
 
 ### 2. Login
 ```http
@@ -35,28 +36,7 @@ Content-Type: application/json
 }
 ```
 
-### 3. Send OTP
-```http
-POST /api/auth/send-otp
-Content-Type: application/json
-
-{
-  "phone": "9876543210"
-}
-```
-
-### 4. Verify OTP
-```http
-POST /api/auth/verify-otp
-Content-Type: application/json
-
-{
-  "phone": "9876543210",
-  "otp": "123456"
-}
-```
-
-### 5. Get Profile
+### 3. Get Profile
 ```http
 GET /api/auth/profile
 Authorization: Bearer <token>
@@ -402,7 +382,7 @@ Authorization: Bearer <your_token>
 
 | Category | Endpoints | Description |
 |----------|-----------|-------------|
-| **Authentication** | 5 | Register, login, OTP, profile |
+| **Authentication** | 3 | Register, login, profile |
 | **Projects** | 6 | Create, browse, update, delete projects |
 | **Proposals** | 6 | Send, view, accept, reject proposals |
 | **Payments** | 4 | Create orders, verify payments, history |
@@ -410,7 +390,7 @@ Authorization: Bearer <your_token>
 | **Reviews** | 3 | Create, view reviews |
 | **AI** | 2 | Generate ideas, suggestions |
 | **Admin** | 8 | User management, analytics, disputes |
-| **TOTAL** | **37** | Complete API coverage |
+| **TOTAL** | **35** | Complete API coverage |
 
 ---
 
@@ -423,7 +403,6 @@ curl -X POST https://projexhub-backend.onrender.com/api/auth/register \
   -d '{
     "name": "John Doe",
     "email": "john@example.com",
-    "phone": "9876543210",
     "password": "password123",
     "role": "student",
     "college": "MIT",
@@ -483,5 +462,5 @@ curl -X POST https://projexhub-backend.onrender.com/api/projects \
 
 ---
 
-**🎉 All 37 endpoints are ready to use!**
+**🎉 All 35 endpoints are ready to use!**
 

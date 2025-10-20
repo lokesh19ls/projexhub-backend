@@ -16,25 +16,13 @@ export const authController = {
   }),
 
   login: asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { email, phone, password } = req.body;
-    const result = await authService.login(email, phone, password);
+    const { email, password } = req.body;
+    const result = await authService.login(email, password);
     res.json({
       message: 'Login successful',
       user: result.user,
       token: result.token
     });
-  }),
-
-  sendOTP: asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { phone, email } = req.body;
-    const result = await authService.sendOTP(phone, email);
-    res.json(result);
-  }),
-
-  verifyOTP: asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { phone, email, otp } = req.body;
-    const result = await authService.verifyOTP(phone, email, otp);
-    res.json(result);
   }),
 
   getProfile: asyncHandler(async (req: AuthRequest, res: Response) => {
