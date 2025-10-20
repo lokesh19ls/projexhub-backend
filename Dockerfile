@@ -32,6 +32,9 @@ COPY --from=builder /app/dist ./dist
 # Copy schema.sql for migrations from builder stage
 COPY --from=builder /app/src/database/schema.sql ./dist/database/schema.sql
 
+# Copy migration scripts
+COPY --from=builder /app/src/database/update-phone-to-optional.js ./dist/database/update-phone-to-optional.js
+
 # Create uploads directory
 RUN mkdir -p uploads
 

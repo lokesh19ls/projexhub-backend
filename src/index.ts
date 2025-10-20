@@ -30,6 +30,17 @@ const execAsync = promisify(exec);
 async function runMigrations() {
   try {
     console.log('🔄 Running database migrations...');
+    
+    // First, update phone column to be optional
+    try {
+      const { stdout: updateStdout, stderr: updateStderr } = await execAsync('node dist/database/update-phone-to-optional.js');
+      if (updateStdout) console.log(updateStdout);
+      if (updateStderr) console.error(updateStderr);
+    } catch (updateError: any) {
+      console.log('⚠️  Phone column update skipped (may already be updated)');
+    }
+    
+    // Then run the main schema migration
     const { stdout, stderr } = await execAsync('node dist/database/migrate.js');
     if (stdout) console.log(stdout);
     if (stderr) console.error(stderr);
