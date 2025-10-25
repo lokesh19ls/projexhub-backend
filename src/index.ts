@@ -10,6 +10,7 @@ import { promisify } from 'util';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
+import homeRoutes from './routes/homeRoutes';
 import projectRoutes from './routes/projectRoutes';
 import proposalRoutes from './routes/proposalRoutes';
 import paymentRoutes from './routes/paymentRoutes';
@@ -82,6 +83,7 @@ app.get('/health', (_req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/home', homeRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/proposals', proposalRoutes);
 app.use('/api/payments', paymentRoutes);
