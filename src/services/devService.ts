@@ -80,9 +80,33 @@ export class DevService {
     );
 
     // Total earnings
+    // Include: 1) Completed payments (actual money received)
+    // 2) Completed projects without completed payments (calculate from proposal price - 10% commission)
     const earningsResult = await query(
-      `SELECT COALESCE(SUM(net_amount), 0) as total FROM payments 
-       WHERE developer_id = $1 AND status = 'completed'`,
+      `WITH completed_payments AS (
+        SELECT project_id, SUM(net_amount) as total_net
+        FROM payments 
+        WHERE developer_id = $1 AND status = 'completed'
+        GROUP BY project_id
+      ),
+      completed_projects_with_proposals AS (
+        SELECT 
+          pr.id as project_id,
+          p.price * 0.9 as net_earnings,
+          COALESCE(cp.total_net, 0) as paid_amount
+        FROM projects pr
+        JOIN proposals p ON pr.accepted_proposal_id = p.id
+        LEFT JOIN completed_payments cp ON pr.id = cp.project_id
+        WHERE p.developer_id = $1 
+        AND pr.status = 'completed'
+      )
+      SELECT COALESCE(
+        SUM(CASE 
+          WHEN paid_amount > 0 THEN paid_amount
+          ELSE net_earnings
+        END), 0
+      ) as total
+      FROM completed_projects_with_proposals`,
       [userId]
     );
 

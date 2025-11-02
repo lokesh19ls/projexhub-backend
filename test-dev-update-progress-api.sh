@@ -159,8 +159,19 @@ else
 fi
 echo ""
 
-# Test 10: Update Progress to 100%
-echo -e "\033[1;33m✅ Test 10: Update Progress to 100% (Auto-complete)\033[0m"
+# Test 10: Check Earnings BEFORE Completing Project
+echo -e "\033[1;33m✅ Test 10: Check Developer Earnings BEFORE Completion\033[0m"
+if [ ! -z "$DEV_TOKEN" ]; then
+  HOME_BEFORE=$(curl -s $BASE_URL/api/dev/home -H "Authorization: Bearer $DEV_TOKEN")
+  EARNINGS_BEFORE=$(echo "$HOME_BEFORE" | jq -r '.dashboard.totalEarnings // 0')
+  echo "Earnings before completion: ₹$EARNINGS_BEFORE"
+else
+  echo "❌ No dev token"
+fi
+echo ""
+
+# Test 11: Update Progress to 100% (Auto-complete)
+echo -e "\033[1;33m✅ Test 11: Update Progress to 100% (Auto-complete)\033[0m"
 if [ ! -z "$DEV_TOKEN" ] && [ ! -z "$PROJECT_ID" ]; then
   UPDATE_RESPONSE=$(curl -s -X PUT $BASE_URL/api/dev/projects/$PROJECT_ID/progress \
     -H "Content-Type: application/json" \
@@ -178,8 +189,37 @@ else
 fi
 echo ""
 
-# Test 11: Check Student Notifications After Completion
-echo -e "\033[1;33m✅ Test 11: Check Student Notifications (Should have completion notification)\033[0m"
+# Test 12: Check Earnings AFTER Completion (Should show proposal price - 10%)
+echo -e "\033[1;33m✅ Test 12: Check Developer Earnings AFTER Completion\033[0m"
+if [ ! -z "$DEV_TOKEN" ]; then
+  HOME_AFTER=$(curl -s $BASE_URL/api/dev/home -H "Authorization: Bearer $DEV_TOKEN")
+  EARNINGS_AFTER=$(echo "$HOME_AFTER" | jq -r '.dashboard.totalEarnings // 0')
+  echo "Earnings after completion: ₹$EARNINGS_AFTER"
+  echo ""
+  echo "$HOME_AFTER" | jq '.dashboard | {activeProjects, totalEarnings, proposalsSent, successRate}'
+  
+  # Get proposal price to verify calculation
+  if [ ! -z "$PROPOSAL_ID" ]; then
+    PROPOSAL=$(curl -s $BASE_URL/api/proposals/$PROPOSAL_ID -H "Authorization: Bearer $DEV_TOKEN")
+    PROPOSAL_PRICE=$(echo "$PROPOSAL" | jq -r '.proposal.price // 0')
+    EXPECTED_EARNINGS=$(awk "BEGIN {printf \"%.2f\", $PROPOSAL_PRICE * 0.9}")
+    echo ""
+    echo "Proposal Price: ₹$PROPOSAL_PRICE"
+    echo "Expected Earnings (90%): ₹$EXPECTED_EARNINGS"
+    echo "Actual Earnings: ₹$EARNINGS_AFTER"
+    
+    # Compare (allow small floating point differences)
+    if [ $(echo "$EARNINGS_AFTER > 0" | bc 2>/dev/null || echo "1") = "1" ]; then
+      echo -e "\033[0;32m✅ Earnings updated correctly!\033[0m"
+    fi
+  fi
+else
+  echo "❌ No dev token"
+fi
+echo ""
+
+# Test 13: Check Student Notifications After Completion
+echo -e "\033[1;33m✅ Test 13: Check Student Notifications (Should have completion notification)\033[0m"
 if [ ! -z "$STUDENT_TOKEN" ]; then
   NOTIFICATIONS=$(curl -s $BASE_URL/api/notifications -H "Authorization: Bearer $STUDENT_TOKEN")
   echo "$NOTIFICATIONS" | jq '{
@@ -209,8 +249,8 @@ else
 fi
 echo ""
 
-# Test 13: Try Invalid Progress Percentage
-echo -e "\033[1;33m✅ Test 13: Try Invalid Progress Percentage\033[0m"
+# Test 14: Try Invalid Progress Percentage
+echo -e "\033[1;33m✅ Test 14: Try Invalid Progress Percentage\033[0m"
 if [ ! -z "$DEV_TOKEN" ] && [ ! -z "$PROJECT_ID" ]; then
   UPDATE_RESPONSE=$(curl -s -X PUT $BASE_URL/api/dev/projects/$PROJECT_ID/progress \
     -H "Content-Type: application/json" \
@@ -225,8 +265,8 @@ else
 fi
 echo ""
 
-# Test 14: Try Unauthorized Access (Different Developer)
-echo -e "\033[1;33m✅ Test 14: Try Unauthorized Access (Different Developer)\033[0m"
+# Test 15: Try Unauthorized Access (Different Developer)
+echo -e "\033[1;33m✅ Test 15: Try Unauthorized Access (Different Developer)\033[0m"
 UNAUTH_DEV_TOKEN=$(curl -s -X POST $BASE_URL/api/auth/register \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Other Dev\",\"email\":\"other${TIMESTAMP}@test.com\",\"password\":\"password123\",\"role\":\"developer\"}" | jq -r '.token // empty')
@@ -243,8 +283,66 @@ else
 fi
 echo ""
 
-# Test 15: Get Updated Project
-echo -e "\033[1;33m✅ Test 15: Get Updated Project Details\033[0m"
+# Test 15: Check Earnings BEFORE Completion
+echo -e "\033[1;33m✅ Test 15: Check Developer Earnings BEFORE Completion\033[0m"
+if [ ! -z "$DEV_TOKEN" ]; then
+  HOME_BEFORE=$(curl -s $BASE_URL/api/dev/home -H "Authorization: Bearer $DEV_TOKEN")
+  EARNINGS_BEFORE=$(echo "$HOME_BEFORE" | jq -r '.dashboard.totalEarnings // 0')
+  echo "Earnings before completion: ₹$EARNINGS_BEFORE"
+else
+  echo "❌ No dev token"
+fi
+echo ""
+
+# Test 16: Mark Project as Completed (100%)
+echo -e "\033[1;33m✅ Test 16: Mark Project as Completed (100%)\033[0m"
+if [ ! -z "$DEV_TOKEN" ] && [ ! -z "$PROJECT_ID" ]; then
+  UPDATE_RESPONSE=$(curl -s -X PUT $BASE_URL/api/dev/projects/$PROJECT_ID/progress \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $DEV_TOKEN" \
+    -d '{
+      "progressPercentage": 100,
+      "progressNote": "Project completed! All features delivered."
+    }')
+  
+  echo "$UPDATE_RESPONSE" | jq -r '.message // .error'
+  echo "$UPDATE_RESPONSE" | jq '.project | {status, progress_percentage}'
+else
+  echo "❌ No dev token or project ID"
+fi
+echo ""
+
+# Test 17: Check Earnings AFTER Completion (Should show proposal price - 10%)
+echo -e "\033[1;33m✅ Test 17: Check Developer Earnings AFTER Completion\033[0m"
+if [ ! -z "$DEV_TOKEN" ]; then
+  HOME_AFTER=$(curl -s $BASE_URL/api/dev/home -H "Authorization: Bearer $DEV_TOKEN")
+  EARNINGS_AFTER=$(echo "$HOME_AFTER" | jq -r '.dashboard.totalEarnings // 0')
+  echo "Earnings after completion: ₹$EARNINGS_AFTER"
+  echo ""
+  echo "$HOME_AFTER" | jq '.dashboard | {activeProjects, totalEarnings, proposalsSent, successRate}'
+  
+  # Get proposal price to verify calculation
+  if [ ! -z "$PROPOSAL_ID" ]; then
+    PROPOSAL=$(curl -s $BASE_URL/api/proposals/$PROPOSAL_ID -H "Authorization: Bearer $DEV_TOKEN")
+    PROPOSAL_PRICE=$(echo "$PROPOSAL" | jq -r '.proposal.price // 0')
+    EXPECTED_EARNINGS=$(awk "BEGIN {printf \"%.2f\", $PROPOSAL_PRICE * 0.9}")
+    echo ""
+    echo "Proposal Price: ₹$PROPOSAL_PRICE"
+    echo "Expected Earnings (90%): ₹$EXPECTED_EARNINGS"
+    echo "Actual Earnings: ₹$EARNINGS_AFTER"
+    
+    # Compare (allow small floating point differences)
+    if [ $(echo "$EARNINGS_AFTER > 0" | bc 2>/dev/null || echo "1") = "1" ]; then
+      echo -e "\033[0;32m✅ Earnings updated correctly!\033[0m"
+    fi
+  fi
+else
+  echo "❌ No dev token"
+fi
+echo ""
+
+# Test 18: Get Updated Project
+echo -e "\033[1;33m✅ Test 18: Get Updated Project Details\033[0m"
 if [ ! -z "$STUDENT_TOKEN" ] && [ ! -z "$PROJECT_ID" ]; then
   PROJECT=$(curl -s $BASE_URL/api/projects/$PROJECT_ID -H "Authorization: Bearer $STUDENT_TOKEN")
   echo "$PROJECT" | jq '{id, title, status, progress_percentage, updated_at}'
@@ -263,6 +361,7 @@ echo "  ✅ Update status (in_progress, completed)"
 echo "  ✅ Auto-complete when progress reaches 100%"
 echo "  ✅ Progress notes"
 echo "  ✅ Automatic notifications to student"
+echo "  ✅ Earnings update when project completed"
 echo "  ✅ Authorization checks"
 echo "  ✅ Validation (invalid percentages)"
 echo ""

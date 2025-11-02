@@ -345,7 +345,10 @@ function DeveloperHomeScreen() {
 ## 🔗 Related Endpoints
 
 - `GET /api/projects` - Browse available projects
+- `GET /api/dev/projects` - Browse projects (developer view with applied status)
+- `PUT /api/dev/projects/:id/progress` - Update project progress
 - `GET /api/proposals/my-proposals` - View sent proposals
+- `POST /api/proposals/project/:projectId` - Send proposal
 - `GET /api/payments/earnings` - Detailed earnings breakdown
 - `GET /api/notifications` - All notifications
 - `GET /api/chat/conversations` - Chat conversations
@@ -456,6 +459,94 @@ curl -X GET "https://projexhub-backend.onrender.com/api/dev/projects?technology=
 
 ---
 
+### 3. Update Project Progress
+
+**Endpoint:** `PUT /api/dev/projects/:projectId/progress`
+
+**Description:** Update project progress and status. Automatically sends notifications to students.
+
+**URL Parameters:**
+- `projectId` (number) - The project ID
+
+**Request Body:**
+```json
+{
+  "progressPercentage": 50,
+  "status": "in_progress",
+  "progressNote": "Halfway through! Core features implemented."
+}
+```
+
+**Request Fields:**
+- `progressPercentage` (number, optional) - Progress percentage (must be 0, 20, 50, or 100)
+- `status` (string, optional) - Project status: "in_progress" or "completed"
+- `progressNote` (string, optional) - Optional note about the progress
+
+**Example Request:**
+```bash
+curl -X PUT https://projexhub-backend.onrender.com/api/dev/projects/1/progress \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "progressPercentage": 50,
+    "status": "in_progress",
+    "progressNote": "Core features completed"
+  }'
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Project progress updated successfully",
+  "project": {
+    "id": 1,
+    "title": "E-commerce App",
+    "status": "in_progress",
+    "progress_percentage": 50,
+    "updated_at": "2025-01-20T10:30:00.000Z"
+  },
+  "progressNote": "Core features completed",
+  "notification": {
+    "title": "Project Progress: 50%",
+    "message": "Developer reached 50% milestone for \"E-commerce App\""
+  }
+}
+```
+
+**Milestone Notifications:**
+- **20%**: "Project Progress: 20%" - "Developer reached 20% milestone"
+- **50%**: "Project Progress: 50%" - "Developer reached 50% milestone"
+- **100%**: "Project Completed!" - Auto-sets status to completed
+- **Status Completed**: "Project Completed!" - "Developer marked project as completed"
+- **Status In Progress**: "Project Status Updated" - "Developer set project to In Progress"
+
+**Key Features:**
+- ✅ Update progress milestones (20%, 50%, 100%)
+- ✅ Update project status
+- ✅ Auto-complete when progress reaches 100%
+- ✅ Progress notes support
+- ✅ Automatic notifications to students
+- ✅ Authorization (only assigned developers)
+- ✅ Validation (valid milestone percentages)
+
+**Error Responses:**
+
+**400 Bad Request**
+```json
+{
+  "error": "Progress percentage must be 0, 20, 50, or 100"
+}
+```
+
+**404 Not Found**
+```json
+{
+  "error": "Project not found or you are not assigned to this project"
+}
+```
+
+---
+
 ## 📝 Notes
 
 ### Developer Home API
@@ -471,6 +562,13 @@ curl -X GET "https://projexhub-backend.onrender.com/api/dev/projects?technology=
 - **Filters:** Support for technology, status, budget, search
 - **Pagination:** Limit and offset support
 - **Student Info:** Includes student details
+
+### Update Progress API
+- **Milestones:** Only valid percentages (0, 20, 50, 100)
+- **Auto-complete:** Progress 100% automatically sets status to completed
+- **Notifications:** Automatic notifications to students on updates
+- **Authorization:** Only developers assigned to project can update
+- **Notes:** Optional progress notes for tracking
 
 ---
 
