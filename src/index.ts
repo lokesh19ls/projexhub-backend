@@ -18,6 +18,7 @@ import chatRoutes from './routes/chatRoutes';
 import reviewRoutes from './routes/reviewRoutes';
 import aiRoutes from './routes/aiRoutes';
 import adminRoutes from './routes/adminRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -91,6 +92,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Socket.IO for real-time chat
 io.on('connection', (socket) => {
