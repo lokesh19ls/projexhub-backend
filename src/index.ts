@@ -19,6 +19,7 @@ import reviewRoutes from './routes/reviewRoutes';
 import aiRoutes from './routes/aiRoutes';
 import adminRoutes from './routes/adminRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import devRoutes from './routes/devRoutes';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -93,6 +94,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/dev', devRoutes);
 
 // Socket.IO for real-time chat
 io.on('connection', (socket) => {
