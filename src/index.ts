@@ -43,6 +43,15 @@ async function runMigrations() {
       console.log('⚠️  Phone column update skipped (may already be updated)');
     }
     
+    // Create progress history table
+    try {
+      const { stdout: progressStdout, stderr: progressStderr } = await execAsync('node dist/database/migrations/create-progress-history-table.js');
+      if (progressStdout) console.log(progressStdout);
+      if (progressStderr) console.error(progressStderr);
+    } catch (progressError: any) {
+      console.log('⚠️  Progress history table creation skipped (may already exist)');
+    }
+    
     // Then run the main schema migration
     const { stdout, stderr } = await execAsync('node dist/database/migrate.js');
     if (stdout) console.log(stdout);

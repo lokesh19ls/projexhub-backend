@@ -202,15 +202,20 @@ if [ ! -z "$DEV_TOKEN" ]; then
   if [ ! -z "$PROPOSAL_ID" ]; then
     PROPOSAL=$(curl -s $BASE_URL/api/proposals/$PROPOSAL_ID -H "Authorization: Bearer $DEV_TOKEN")
     PROPOSAL_PRICE=$(echo "$PROPOSAL" | jq -r '.proposal.price // 0')
-    EXPECTED_EARNINGS=$(awk "BEGIN {printf \"%.2f\", $PROPOSAL_PRICE * 0.9}")
+    EXPECTED_EARNINGS=$(awk "BEGIN {printf \"%.0f\", $PROPOSAL_PRICE * 0.9}")
     echo ""
     echo "Proposal Price: ₹$PROPOSAL_PRICE"
-    echo "Expected Earnings (90%): ₹$EXPECTED_EARNINGS"
+    echo "Expected Earnings (90% after commission): ₹$EXPECTED_EARNINGS"
     echo "Actual Earnings: ₹$EARNINGS_AFTER"
     
-    # Compare (allow small floating point differences)
-    if [ $(echo "$EARNINGS_AFTER > 0" | bc 2>/dev/null || echo "1") = "1" ]; then
-      echo -e "\033[0;32m✅ Earnings updated correctly!\033[0m"
+    # Compare earnings (convert to integers for comparison)
+    EARNINGS_INT=$(echo "$EARNINGS_AFTER" | awk '{printf "%.0f", $1}')
+    if [ "$EARNINGS_INT" = "$EXPECTED_EARNINGS" ]; then
+      echo -e "\033[0;32m✅✅✅ Earnings updated correctly! Match expected amount!\033[0m"
+    elif [ "$EARNINGS_AFTER" != "0" ]; then
+      echo -e "\033[0;33m⚠️  Earnings updated but amount differs. This might be expected if multiple projects exist.\033[0m"
+    else
+      echo -e "\033[0;31m❌ Earnings not updated. Expected ₹$EXPECTED_EARNINGS, got ₹$EARNINGS_AFTER\033[0m"
     fi
   fi
 else

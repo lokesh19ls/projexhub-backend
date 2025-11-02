@@ -342,7 +342,25 @@ export class DevService {
       ]
     );
 
-    // If progress note provided, we can store it (for now just return it in response)
+    // Store progress history
+    const progressPercentageToStore = data.progressPercentage !== undefined 
+      ? data.progressPercentage 
+      : updatedProject.progress_percentage;
+    const statusToStore = finalStatus || updatedProject.status;
+
+    await query(
+      `INSERT INTO project_progress_history 
+       (project_id, updated_by, progress_percentage, status, progress_note)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        projectId,
+        developerId,
+        progressPercentageToStore,
+        statusToStore,
+        data.progressNote || null
+      ]
+    );
+
     return {
       project: updatedProject,
       progressNote: data.progressNote || null,

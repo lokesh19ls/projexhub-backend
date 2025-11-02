@@ -163,6 +163,17 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Project Progress History Table
+CREATE TABLE IF NOT EXISTS project_progress_history (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    updated_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    progress_percentage INTEGER NOT NULL CHECK (progress_percentage IN (0, 20, 50, 100)),
+    status VARCHAR(20) NOT NULL CHECK (status IN ('in_progress', 'completed')),
+    progress_note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for better performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_phone ON users(phone);
@@ -176,6 +187,8 @@ CREATE INDEX idx_chat_messages_project_id ON chat_messages(project_id);
 CREATE INDEX idx_chat_messages_sender_id ON chat_messages(sender_id);
 CREATE INDEX idx_payments_project_id ON payments(project_id);
 CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_project_progress_history_project_id ON project_progress_history(project_id);
+CREATE INDEX idx_project_progress_history_created_at ON project_progress_history(created_at);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

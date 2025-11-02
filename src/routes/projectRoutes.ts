@@ -19,6 +19,7 @@ router.post(
 
 router.get('/', projectController.getProjects);
 router.get('/my-projects', projectController.getUserProjects);
+router.get('/:id/progress', authorize(UserRole.STUDENT, UserRole.ADMIN), projectController.getProjectProgressTracking);
 router.get('/:id', projectController.getProjectById);
 
 router.put(

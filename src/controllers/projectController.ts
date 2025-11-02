@@ -58,6 +58,17 @@ export const projectController = {
       req.user!.role
     );
     res.json(projects);
+  }),
+
+  getProjectProgressTracking: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const progressData = await projectService.getProjectProgressTracking(
+      parseInt(req.params.id),
+      req.user!.id
+    );
+    res.json({
+      message: 'Project progress tracking data retrieved successfully',
+      data: progressData
+    });
   })
 };
 
