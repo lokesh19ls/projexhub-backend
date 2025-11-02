@@ -16,8 +16,10 @@ JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
 JWT_EXPIRES_IN=7d
 
 # Razorpay Configuration
-RAZORPAY_KEY_ID=your_razorpay_key_id
-RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+# Test Keys (for development/testing)
+RAZORPAY_KEY_ID=rzp_test_Rao6sZZOgM645V
+RAZORPAY_KEY_SECRET=F1QTcw20phyWMwmgFWlXIiB5
+# Note: Replace with production keys when going live
 
 # Twilio Configuration (for OTP)
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
