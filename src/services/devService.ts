@@ -342,24 +342,34 @@ export class DevService {
       ]
     );
 
-    // Store progress history
-    const progressPercentageToStore = data.progressPercentage !== undefined 
-      ? data.progressPercentage 
-      : updatedProject.progress_percentage;
-    const statusToStore = finalStatus || updatedProject.status;
+    // Store progress history (if table exists)
+    try {
+      const progressPercentageToStore = data.progressPercentage !== undefined 
+        ? data.progressPercentage 
+        : updatedProject.progress_percentage;
+      const statusToStore = finalStatus || updatedProject.status;
 
-    await query(
-      `INSERT INTO project_progress_history 
-       (project_id, updated_by, progress_percentage, status, progress_note)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        projectId,
-        developerId,
-        progressPercentageToStore,
-        statusToStore,
-        data.progressNote || null
-      ]
-    );
+      await query(
+        `INSERT INTO project_progress_history 
+         (project_id, updated_by, progress_percentage, status, progress_note)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          projectId,
+          developerId,
+          progressPercentageToStore,
+          statusToStore,
+          data.progressNote || null
+        ]
+      );
+    } catch (error: any) {
+      // Table might not exist yet, log but don't fail
+      if (error.code === '42P01') {
+        console.warn('⚠️  project_progress_history table does not exist yet. Progress history will not be stored.');
+      } else {
+        // Re-throw other errors
+        throw error;
+      }
+    }
 
     return {
       project: updatedProject,

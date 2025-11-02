@@ -228,16 +228,19 @@ export class ProjectService {
     const project = projectResult.rows[0];
 
     // Get progress history (sorted by most recent first)
-    const historyResult = await query(
-      `SELECT pph.*, u.name as updated_by_name
-       FROM project_progress_history pph
-       LEFT JOIN users u ON pph.updated_by = u.id
-       WHERE pph.project_id = $1
-       ORDER BY pph.created_at DESC`,
-      [projectId]
-    );
+    // Handle case where table might not exist yet
+    let progressHistory: any[] = [];
+    try {
+      const historyResult = await query(
+        `SELECT pph.*, u.name as updated_by_name
+         FROM project_progress_history pph
+         LEFT JOIN users u ON pph.updated_by = u.id
+         WHERE pph.project_id = $1
+         ORDER BY pph.created_at DESC`,
+        [projectId]
+      );
 
-    const progressHistory = historyResult.rows.map((row: any) => ({
+      progressHistory = historyResult.rows.map((row: any) => ({
       id: row.id,
       progressPercentage: row.progress_percentage,
       status: row.status,
@@ -247,7 +250,15 @@ export class ProjectService {
         name: row.updated_by_name
       },
       createdAt: row.created_at
-    }));
+      }));
+    } catch (error: any) {
+      // Table might not exist yet, return empty history
+      if (error.code === '42P01') {
+        progressHistory = [];
+      } else {
+        throw error;
+      }
+    }
 
     // Calculate milestone completion
     const milestones = [

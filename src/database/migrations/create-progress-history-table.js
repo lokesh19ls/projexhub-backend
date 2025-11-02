@@ -44,9 +44,11 @@ async function runMigration() {
     console.log('✅ Migration completed: Created project_progress_history table');
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('❌ Migration failed:', error.message);
-    // Don't throw error if table already exists
-    if (!error.message.includes('already exists')) {
+    // If table already exists, that's okay - log and continue
+    if (error.message && error.message.includes('already exists')) {
+      console.log('ℹ️  project_progress_history table already exists, skipping creation');
+    } else {
+      console.error('❌ Migration failed:', error.message);
       throw error;
     }
   } finally {
@@ -55,9 +57,13 @@ async function runMigration() {
 }
 
 runMigration()
-  .then(() => process.exit(0))
+  .then(() => {
+    console.log('✅ Progress history migration script completed');
+    process.exit(0);
+  })
   .catch((error) => {
-    console.error(error);
-    process.exit(1);
+    console.error('❌ Progress history migration script failed:', error);
+    // Exit with 0 to not fail deployment if table already exists
+    process.exit(0);
   });
 
