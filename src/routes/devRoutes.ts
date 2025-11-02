@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/home', devController.getDeveloperHome);
+router.get('/projects', devController.browseProjects);
 
 export default router;
 

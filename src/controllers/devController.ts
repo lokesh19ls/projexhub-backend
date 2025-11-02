@@ -9,6 +9,19 @@ export const devController = {
   getDeveloperHome: asyncHandler(async (req: AuthRequest, res: Response) => {
     const homeData = await devService.getDeveloperHomeData(req.user!.id);
     res.json(homeData);
+  }),
+
+  browseProjects: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const projects = await devService.browseProjects(req.user!.id, {
+      status: req.query.status as string,
+      technology: req.query.technology as string,
+      minBudget: req.query.minBudget ? parseFloat(req.query.minBudget as string) : undefined,
+      maxBudget: req.query.maxBudget ? parseFloat(req.query.maxBudget as string) : undefined,
+      search: req.query.search as string,
+      limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+      offset: req.query.offset ? parseInt(req.query.offset as string) : 0
+    });
+    res.json(projects);
   })
 };
 

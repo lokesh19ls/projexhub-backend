@@ -211,6 +211,76 @@ export class DevService {
     return parseInt(result.rows[0].count);
   }
 
+  async browseProjects(developerId: number, filters: {
+    status?: string;
+    technology?: string;
+    minBudget?: number;
+    maxBudget?: number;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    let queryText = `
+      SELECT p.*, 
+             u.id as student_id, u.name as student_name, u.college, u.department,
+             (SELECT COUNT(*) FROM proposals WHERE project_id = p.id) as proposals_count,
+             (SELECT COUNT(*) FROM proposals WHERE project_id = p.id AND developer_id = $1) as has_applied,
+             (SELECT id FROM proposals WHERE project_id = p.id AND developer_id = $1 LIMIT 1) as my_proposal_id
+      FROM projects p
+      LEFT JOIN users u ON p.student_id = u.id
+      WHERE 1=1
+    `;
+    const params: any[] = [developerId];
+    let paramCount = 2;
+
+    if (filters.status) {
+      queryText += ` AND p.status = $${paramCount}`;
+      params.push(filters.status);
+      paramCount++;
+    }
+
+    if (filters.technology) {
+      queryText += ` AND $${paramCount} = ANY(p.technology)`;
+      params.push(filters.technology);
+      paramCount++;
+    }
+
+    if (filters.minBudget) {
+      queryText += ` AND p.budget >= $${paramCount}`;
+      params.push(filters.minBudget);
+      paramCount++;
+    }
+
+    if (filters.maxBudget) {
+      queryText += ` AND p.budget <= $${paramCount}`;
+      params.push(filters.maxBudget);
+      paramCount++;
+    }
+
+    if (filters.search) {
+      queryText += ` AND (p.title ILIKE $${paramCount} OR p.description ILIKE $${paramCount})`;
+      params.push(`%${filters.search}%`);
+      paramCount++;
+    }
+
+    queryText += ` ORDER BY p.created_at DESC`;
+
+    if (filters.limit) {
+      queryText += ` LIMIT $${paramCount}`;
+      params.push(filters.limit);
+      paramCount++;
+    }
+
+    if (filters.offset) {
+      queryText += ` OFFSET $${paramCount}`;
+      params.push(filters.offset);
+      paramCount++;
+    }
+
+    const result = await query(queryText, params);
+    return result.rows;
+  }
+
   private getTimeAgo(timestamp: string): string {
     const now = new Date();
     const time = new Date(timestamp);
