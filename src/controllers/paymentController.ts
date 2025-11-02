@@ -54,6 +54,17 @@ export const paymentController = {
       message: 'Payment summary retrieved successfully',
       data: summary
     });
+  }),
+
+  getPaymentScreenData: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const screenData = await paymentService.getPaymentScreenData(
+      parseInt(req.params.projectId),
+      req.user!.id
+    );
+    res.json({
+      message: 'Payment screen data retrieved successfully',
+      data: screenData
+    });
   })
 };
 

@@ -330,6 +330,118 @@ export class PaymentService {
     };
   }
 
+  async getPaymentScreenData(projectId: number, studentId: number) {
+    // Verify student owns the project
+    const projectResult = await query(
+      `SELECT p.*, ap.price, ap.timeline
+       FROM projects p
+       LEFT JOIN proposals ap ON p.accepted_proposal_id = ap.id
+       WHERE p.id = $1 AND p.student_id = $2`,
+      [projectId, studentId]
+    );
+
+    if (projectResult.rows.length === 0) {
+      throw new AppError('Project not found or unauthorized', 404);
+    }
+
+    const project = projectResult.rows[0];
+
+    // Check if project has an accepted proposal
+    if (!project.accepted_proposal_id || !project.price) {
+      throw new AppError('Project must have an accepted proposal before making payment', 400);
+    }
+
+    const projectPrice = parseFloat(project.price);
+    const projectBudget = parseFloat(project.budget);
+
+    // Get existing payments
+    const paymentsResult = await query(
+      `SELECT * FROM payments 
+       WHERE project_id = $1 
+       ORDER BY created_at DESC`,
+      [projectId]
+    );
+
+    const payments = paymentsResult.rows;
+    const completedPayments = payments.filter(p => p.status === PaymentStatus.COMPLETED);
+    const totalPaid = completedPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    const remainingAmount = projectPrice - totalPaid;
+
+    // Check which payment types have been used
+    const hasAdvancePayment = completedPayments.some(p => p.payment_type === PaymentType.ADVANCE);
+    const hasFullPayment = completedPayments.some(p => p.payment_type === PaymentType.FULL);
+    const milestonePayments = {
+      20: completedPayments.some(p => p.payment_type === PaymentType.MILESTONE && p.milestone_percentage === 20),
+      50: completedPayments.some(p => p.payment_type === PaymentType.MILESTONE && p.milestone_percentage === 50),
+      100: completedPayments.some(p => p.payment_type === PaymentType.MILESTONE && p.milestone_percentage === 100)
+    };
+
+    // Calculate payment type options
+    const paymentTypes = [
+      {
+        type: 'advance',
+        label: 'Advance Payment',
+        description: '50% advance payment to start the project',
+        amount: projectPrice * 0.5,
+        available: !hasAdvancePayment && !hasFullPayment && remainingAmount > 0
+      },
+      {
+        type: 'full',
+        label: 'Full Payment',
+        description: 'Complete project payment',
+        amount: remainingAmount,
+        available: !hasFullPayment && !hasAdvancePayment && remainingAmount > 0
+      },
+      {
+        type: 'milestone',
+        label: 'Milestone Payment',
+        description: 'Pay based on project milestones',
+        milestones: [
+          {
+            percentage: 20,
+            amount: projectPrice * 0.2,
+            available: !milestonePayments[20] && !hasFullPayment && remainingAmount > 0
+          },
+          {
+            percentage: 50,
+            amount: projectPrice * 0.5,
+            available: !milestonePayments[50] && !hasFullPayment && remainingAmount > 0
+          },
+          {
+            percentage: 100,
+            amount: remainingAmount,
+            available: !milestonePayments[100] && !hasFullPayment && remainingAmount > 0
+          }
+        ]
+      }
+    ];
+
+    // Available payment methods
+    const paymentMethods = [
+      { method: 'upi', label: 'UPI', available: true },
+      { method: 'card', label: 'Card', available: true },
+      { method: 'wallet', label: 'Wallet', available: true },
+      { method: 'netbanking', label: 'Netbanking', available: true }
+    ];
+
+    return {
+      project: {
+        id: project.id,
+        title: project.title,
+        budget: projectBudget,
+        proposedPrice: projectPrice
+      },
+      paymentSummary: {
+        totalPaid,
+        remainingAmount,
+        totalAmount: projectPrice
+      },
+      paymentTypes,
+      paymentMethods,
+      hasAcceptedProposal: true
+    };
+  }
+
   async getPaymentSummary(studentId: number) {
     // Get all payments for the student
     const paymentsResult = await query(

@@ -26,6 +26,12 @@ router.get(
 );
 
 router.get(
+  '/project/:projectId/screen',
+  authorize(UserRole.STUDENT, UserRole.ADMIN),
+  paymentController.getPaymentScreenData
+);
+
+router.get(
   '/summary',
   authorize(UserRole.STUDENT, UserRole.ADMIN),
   paymentController.getPaymentSummary

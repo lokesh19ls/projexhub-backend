@@ -345,7 +345,134 @@ curl -X GET https://projexhub-backend.onrender.com/api/payments/project/1 \
 
 ---
 
-### 5. Get Payment Summary
+### 5. Get Payment Screen Data
+
+**Endpoint:** `GET /api/payments/project/:projectId/screen`
+
+**Description:** Get all data needed for the payment screen including project details, payment options, and calculated amounts.
+
+**Authorization:** Student or Admin only (must own the project)
+
+**URL Parameters:**
+- `projectId` (number) - The project ID
+
+**Example Request:**
+```bash
+curl -X GET https://projexhub-backend.onrender.com/api/payments/project/1/screen \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Payment screen data retrieved successfully",
+  "data": {
+    "project": {
+      "id": 1,
+      "title": "E-commerce Website",
+      "budget": 5000,
+      "proposedPrice": 4000
+    },
+    "paymentSummary": {
+      "totalPaid": 0,
+      "remainingAmount": 4000,
+      "totalAmount": 4000
+    },
+    "paymentTypes": [
+      {
+        "type": "advance",
+        "label": "Advance Payment",
+        "description": "50% advance payment to start the project",
+        "amount": 2000,
+        "available": true
+      },
+      {
+        "type": "full",
+        "label": "Full Payment",
+        "description": "Complete project payment",
+        "amount": 4000,
+        "available": true
+      },
+      {
+        "type": "milestone",
+        "label": "Milestone Payment",
+        "description": "Pay based on project milestones",
+        "milestones": [
+          {
+            "percentage": 20,
+            "amount": 800,
+            "available": true
+          },
+          {
+            "percentage": 50,
+            "amount": 2000,
+            "available": true
+          },
+          {
+            "percentage": 100,
+            "amount": 4000,
+            "available": true
+          }
+        ]
+      }
+    ],
+    "paymentMethods": [
+      {
+        "method": "upi",
+        "label": "UPI",
+        "available": true
+      },
+      {
+        "method": "card",
+        "label": "Card",
+        "available": true
+      },
+      {
+        "method": "wallet",
+        "label": "Wallet",
+        "available": true
+      },
+      {
+        "method": "netbanking",
+        "label": "Netbanking",
+        "available": true
+      }
+    ],
+    "hasAcceptedProposal": true
+  }
+}
+```
+
+**Response Fields:**
+- `project` - Project budget and proposed price
+- `paymentSummary` - Total paid, remaining amount, and total amount
+- `paymentTypes` - Available payment types with calculated amounts
+- `paymentMethods` - Available payment methods
+- `hasAcceptedProposal` - Whether project has an accepted proposal
+
+**Note:** Payment types are marked as `available: false` if:
+- They have already been paid
+- A conflicting payment type exists (e.g., advance and full payment are mutually exclusive)
+
+**Error Responses:**
+
+**400 Bad Request**
+```json
+{
+  "error": "Project must have an accepted proposal before making payment"
+}
+```
+
+**404 Not Found**
+```json
+{
+  "error": "Project not found or unauthorized"
+}
+```
+
+---
+
+### 6. Get Payment Summary
 
 **Endpoint:** `GET /api/payments/summary`
 
