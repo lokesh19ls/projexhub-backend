@@ -19,6 +19,18 @@ router.post(
 
 router.post('/verify', paymentController.verifyPayment);
 
+router.get(
+  '/project/:projectId',
+  authorize(UserRole.STUDENT, UserRole.ADMIN),
+  paymentController.getProjectPayments
+);
+
+router.get(
+  '/summary',
+  authorize(UserRole.STUDENT, UserRole.ADMIN),
+  paymentController.getPaymentSummary
+);
+
 // Common routes
 router.get('/history', paymentController.getPaymentHistory);
 

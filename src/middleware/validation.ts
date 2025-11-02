@@ -54,7 +54,11 @@ export const schemas = {
   createPayment: Joi.object({
     paymentMethod: Joi.string().valid('card', 'upi', 'netbanking', 'wallet').required(),
     paymentType: Joi.string().valid('advance', 'full', 'milestone').required(),
-    milestonePercentage: Joi.number().integer().valid(20, 50, 100).optional()
+    milestonePercentage: Joi.when('paymentType', {
+      is: 'milestone',
+      then: Joi.number().integer().valid(20, 50, 100).required(),
+      otherwise: Joi.number().integer().valid(20, 50, 100).optional()
+    })
   }),
 
   createReview: Joi.object({

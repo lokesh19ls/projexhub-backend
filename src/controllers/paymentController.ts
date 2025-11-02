@@ -35,6 +35,25 @@ export const paymentController = {
   getEarnings: asyncHandler(async (req: AuthRequest, res: Response) => {
     const earnings = await paymentService.getEarnings(req.user!.id);
     res.json(earnings);
+  }),
+
+  getProjectPayments: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const payments = await paymentService.getProjectPayments(
+      parseInt(req.params.projectId),
+      req.user!.id
+    );
+    res.json({
+      message: 'Project payments retrieved successfully',
+      data: payments
+    });
+  }),
+
+  getPaymentSummary: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const summary = await paymentService.getPaymentSummary(req.user!.id);
+    res.json({
+      message: 'Payment summary retrieved successfully',
+      data: summary
+    });
   })
 };
 

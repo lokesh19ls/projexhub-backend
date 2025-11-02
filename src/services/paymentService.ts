@@ -41,6 +41,32 @@ export class PaymentService {
       throw new AppError('Unauthorized to make payment for this project', 403);
     }
 
+    // Check if project has an accepted proposal
+    if (!project.accepted_proposal_id || !project.developer_id) {
+      throw new AppError('Project must have an accepted proposal before making payment', 400);
+    }
+
+    // Validate milestone payment
+    if (data.paymentType === PaymentType.MILESTONE) {
+      if (!data.milestonePercentage || ![20, 50, 100].includes(data.milestonePercentage)) {
+        throw new AppError('Milestone percentage must be 20, 50, or 100', 400);
+      }
+
+      // Check if milestone payment already exists
+      const existingMilestonePayment = await query(
+        `SELECT id FROM payments 
+         WHERE project_id = $1 
+         AND payment_type = $2 
+         AND milestone_percentage = $3 
+         AND status = $4`,
+        [data.projectId, PaymentType.MILESTONE, data.milestonePercentage, PaymentStatus.COMPLETED]
+      );
+
+      if (existingMilestonePayment.rows.length > 0) {
+        throw new AppError(`${data.milestonePercentage}% milestone payment already completed`, 400);
+      }
+    }
+
     // Calculate amounts
     let amount = 0;
     if (data.paymentType === PaymentType.ADVANCE) {
@@ -150,7 +176,7 @@ export class PaymentService {
     const column = role === 'student' ? 'student_id' : 'developer_id';
     
     const result = await query(
-      `SELECT p.*, pr.title as project_title
+      `SELECT p.*, pr.title as project_title, pr.status as project_status
        FROM payments p
        LEFT JOIN projects pr ON p.project_id = pr.id
        WHERE p.${column} = $1
@@ -158,7 +184,30 @@ export class PaymentService {
       [userId]
     );
 
-    return result.rows;
+    return result.rows.map(payment => ({
+      id: payment.id,
+      projectId: payment.project_id,
+      projectTitle: payment.project_title,
+      projectStatus: payment.project_status,
+      amount: parseFloat(payment.amount),
+      netAmount: parseFloat(payment.net_amount),
+      commissionAmount: parseFloat(payment.commission_amount),
+      paymentMethod: payment.payment_method,
+      paymentType: payment.payment_type,
+      milestonePercentage: payment.milestone_percentage,
+      milestoneLabel: payment.payment_type === PaymentType.MILESTONE 
+        ? `${payment.milestone_percentage}% Milestone Payment`
+        : payment.payment_type === PaymentType.ADVANCE
+        ? 'Advance Payment (50%)'
+        : payment.payment_type === PaymentType.FULL
+        ? 'Full Payment'
+        : null,
+      status: payment.status,
+      razorpayOrderId: payment.razorpay_order_id,
+      razorpayPaymentId: payment.razorpay_payment_id,
+      createdAt: payment.created_at,
+      updatedAt: payment.updated_at
+    }));
   }
 
   async getEarnings(developerId: number) {
@@ -173,6 +222,175 @@ export class PaymentService {
     );
 
     return result.rows[0];
+  }
+
+  async getProjectPayments(projectId: number, studentId: number) {
+    // Verify student owns the project
+    const projectResult = await query(
+      `SELECT p.*, ap.price, ap.timeline
+       FROM projects p
+       LEFT JOIN proposals ap ON p.accepted_proposal_id = ap.id
+       WHERE p.id = $1 AND p.student_id = $2`,
+      [projectId, studentId]
+    );
+
+    if (projectResult.rows.length === 0) {
+      throw new AppError('Project not found or unauthorized', 404);
+    }
+
+    const project = projectResult.rows[0];
+
+    // Get all payments for this project
+    const paymentsResult = await query(
+      `SELECT * FROM payments 
+       WHERE project_id = $1 
+       ORDER BY created_at DESC`,
+      [projectId]
+    );
+
+    const payments = paymentsResult.rows;
+
+    // Calculate payment statistics
+    const totalPaid = payments
+      .filter(p => p.status === PaymentStatus.COMPLETED)
+      .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+    const totalPending = payments
+      .filter(p => p.status === PaymentStatus.PENDING)
+      .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+    const projectPrice = project.price ? parseFloat(project.price) : 0;
+    const remainingAmount = projectPrice - totalPaid;
+
+    // Track milestone payments
+    const milestonePayments = {
+      20: payments.find(p => p.payment_type === PaymentType.MILESTONE && p.milestone_percentage === 20 && p.status === PaymentStatus.COMPLETED) || null,
+      50: payments.find(p => p.payment_type === PaymentType.MILESTONE && p.milestone_percentage === 50 && p.status === PaymentStatus.COMPLETED) || null,
+      100: payments.find(p => p.payment_type === PaymentType.MILESTONE && p.milestone_percentage === 100 && p.status === PaymentStatus.COMPLETED) || null
+    };
+
+    // Check for advance payment
+    const advancePayment = payments.find(p => p.payment_type === PaymentType.ADVANCE && p.status === PaymentStatus.COMPLETED);
+    const fullPayment = payments.find(p => p.payment_type === PaymentType.FULL && p.status === PaymentStatus.COMPLETED);
+
+    return {
+      project: {
+        id: project.id,
+        title: project.title,
+        price: projectPrice,
+        totalPaid,
+        remainingAmount,
+        totalPending
+      },
+      payments: payments.map(p => ({
+        id: p.id,
+        amount: parseFloat(p.amount),
+        netAmount: parseFloat(p.net_amount),
+        commissionAmount: parseFloat(p.commission_amount),
+        paymentMethod: p.payment_method,
+        paymentType: p.payment_type,
+        milestonePercentage: p.milestone_percentage,
+        status: p.status,
+        razorpayOrderId: p.razorpay_order_id,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at
+      })),
+      milestones: {
+        20: milestonePayments[20] ? {
+          paid: true,
+          amount: parseFloat(milestonePayments[20].amount),
+          paidAt: milestonePayments[20].updated_at,
+          paymentId: milestonePayments[20].id
+        } : { paid: false, amount: projectPrice * 0.2, paidAt: null, paymentId: null },
+        50: milestonePayments[50] ? {
+          paid: true,
+          amount: parseFloat(milestonePayments[50].amount),
+          paidAt: milestonePayments[50].updated_at,
+          paymentId: milestonePayments[50].id
+        } : { paid: false, amount: projectPrice * 0.5, paidAt: null, paymentId: null },
+        100: milestonePayments[100] ? {
+          paid: true,
+          amount: parseFloat(milestonePayments[100].amount),
+          paidAt: milestonePayments[100].updated_at,
+          paymentId: milestonePayments[100].id
+        } : { paid: false, amount: projectPrice * 1.0, paidAt: null, paymentId: null }
+      },
+      advancePayment: advancePayment ? {
+        paid: true,
+        amount: parseFloat(advancePayment.amount),
+        paidAt: advancePayment.updated_at,
+        paymentId: advancePayment.id
+      } : { paid: false, amount: projectPrice * 0.5, paidAt: null, paymentId: null },
+      fullPayment: fullPayment ? {
+        paid: true,
+        amount: parseFloat(fullPayment.amount),
+        paidAt: fullPayment.updated_at,
+        paymentId: fullPayment.id
+      } : null
+    };
+  }
+
+  async getPaymentSummary(studentId: number) {
+    // Get all payments for the student
+    const paymentsResult = await query(
+      `SELECT p.*, pr.title as project_title, pr.status as project_status
+       FROM payments p
+       LEFT JOIN projects pr ON p.project_id = pr.id
+       WHERE p.student_id = $1
+       ORDER BY p.created_at DESC`,
+      [studentId]
+    );
+
+    const payments = paymentsResult.rows;
+
+    // Calculate statistics
+    const totalPaid = payments
+      .filter(p => p.status === PaymentStatus.COMPLETED)
+      .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+    const totalPending = payments
+      .filter(p => p.status === PaymentStatus.PENDING)
+      .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+    const totalFailed = payments
+      .filter(p => p.status === PaymentStatus.FAILED)
+      .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+    const totalRefunded = payments
+      .filter(p => p.status === PaymentStatus.REFUNDED)
+      .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+    // Group by payment type
+    const byType = {
+      advance: payments.filter(p => p.payment_type === PaymentType.ADVANCE && p.status === PaymentStatus.COMPLETED).length,
+      full: payments.filter(p => p.payment_type === PaymentType.FULL && p.status === PaymentStatus.COMPLETED).length,
+      milestone: payments.filter(p => p.payment_type === PaymentType.MILESTONE && p.status === PaymentStatus.COMPLETED).length
+    };
+
+    // Recent payments (last 10)
+    const recentPayments = payments.slice(0, 10).map(p => ({
+      id: p.id,
+      projectId: p.project_id,
+      projectTitle: p.project_title,
+      amount: parseFloat(p.amount),
+      paymentType: p.payment_type,
+      milestonePercentage: p.milestone_percentage,
+      status: p.status,
+      createdAt: p.created_at
+    }));
+
+    return {
+      summary: {
+        totalPaid,
+        totalPending,
+        totalFailed,
+        totalRefunded,
+        totalTransactions: payments.length,
+        completedTransactions: payments.filter(p => p.status === PaymentStatus.COMPLETED).length
+      },
+      byType,
+      recentPayments
+    };
   }
 }
 
