@@ -1,4 +1,4 @@
-# 👨‍💻 Developer Home API Documentation
+# 👨‍💻 Developer API Documentation
 
 **Base URL:** `https://projexhub-backend.onrender.com/api`
 
@@ -13,9 +13,9 @@ Authorization: Bearer <your_token>
 
 ---
 
-## 📋 API Endpoint
+## 📋 API Endpoints
 
-### Get Developer Home Data
+### 1. Get Developer Home Data
 
 **Endpoint:** `GET /api/dev/home`
 
@@ -352,22 +352,135 @@ function DeveloperHomeScreen() {
 
 ---
 
+### 2. Browse Projects
+
+**Endpoint:** `GET /api/dev/projects`
+
+**Description:** Browse all available projects with advanced filters. Shows if developer has already applied.
+
+**Query Parameters:**
+- `status` (string, optional) - Filter by status: open, in_progress, completed, cancelled
+- `technology` (string, optional) - Filter by technology (e.g., "React", "Flutter")
+- `minBudget` (number, optional) - Minimum budget filter
+- `maxBudget` (number, optional) - Maximum budget filter
+- `search` (string, optional) - Search in title and description
+- `limit` (number, optional) - Number of results (default: 20)
+- `offset` (number, optional) - Pagination offset (default: 0)
+
+**Example Request:**
+```bash
+curl -X GET https://projexhub-backend.onrender.com/api/dev/projects \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+**Example Request with Filters:**
+```bash
+curl -X GET "https://projexhub-backend.onrender.com/api/dev/projects?technology=React&minBudget=5000&maxBudget=20000&status=open" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "student_id": 10,
+    "title": "E-commerce Mobile App",
+    "description": "Build a modern e-commerce application...",
+    "technology": ["Flutter", "Dart", "Firebase"],
+    "budget": "15000.00",
+    "deadline": "2026-08-15T00:00:00.000Z",
+    "status": "open",
+    "accepted_proposal_id": null,
+    "progress_percentage": 0,
+    "created_at": "2025-01-20T10:00:00.000Z",
+    "updated_at": "2025-01-20T10:00:00.000Z",
+    "student_name": "Alice Student",
+    "college": "MIT",
+    "department": "Computer Science",
+    "proposals_count": "3",
+    "has_applied": "0",
+    "my_proposal_id": null
+  },
+  {
+    "id": 2,
+    "student_id": 11,
+    "title": "AI Chatbot Application",
+    "description": "Build an intelligent chatbot...",
+    "technology": ["Python", "OpenAI", "Flask"],
+    "budget": "8000.00",
+    "deadline": "2026-07-30T00:00:00.000Z",
+    "status": "open",
+    "accepted_proposal_id": null,
+    "progress_percentage": 0,
+    "created_at": "2025-01-19T09:00:00.000Z",
+    "updated_at": "2025-01-19T09:00:00.000Z",
+    "student_name": "Bob Student",
+    "college": "Stanford",
+    "department": "CS",
+    "proposals_count": "1",
+    "has_applied": "1",
+    "my_proposal_id": 5
+  }
+]
+```
+
+**Response Fields:**
+- `id` - Project ID
+- `student_id` - Student's user ID
+- `title` - Project title
+- `description` - Project description
+- `technology` - Array of technologies
+- `budget` - Budget in INR
+- `deadline` - Project deadline
+- `status` - Project status (open, in_progress, completed, cancelled)
+- `accepted_proposal_id` - ID of accepted proposal (null if open)
+- `progress_percentage` - Progress percentage
+- `created_at` - Creation timestamp
+- `updated_at` - Last update timestamp
+- `student_name` - Student's name
+- `college` - Student's college
+- `department` - Student's department
+- `proposals_count` - Total number of proposals received
+- `has_applied` - "1" if developer has applied, "0" if not
+- `my_proposal_id` - Developer's proposal ID (if applied)
+
+**Key Features:**
+- ✅ Shows if developer has already applied
+- ✅ Includes developer's proposal ID (if applied)
+- ✅ Total proposals count
+- ✅ Advanced filtering
+- ✅ Search functionality
+- ✅ Pagination support
+- ✅ Student information included
+
+---
+
 ## 📝 Notes
 
-- **Real-time Data:** All metrics are calculated in real-time
+### Developer Home API
+- **Real-time Data:** All metrics calculated in real-time
 - **Optimized:** Single endpoint for all home screen data
 - **Paginated Activity:** Returns max 10 recent activities
 - **Sorted:** Activities sorted by most recent first
 - **Currency:** Earnings displayed in INR
 
+### Browse Projects API
+- **Applied Status:** Shows if developer already sent proposal
+- **Proposal ID:** Returns developer's proposal ID if applied
+- **Filters:** Support for technology, status, budget, search
+- **Pagination:** Limit and offset support
+- **Student Info:** Includes student details
+
 ---
 
 ## 🚀 Performance
 
-Endpoint optimized for mobile app usage:
+Endpoints optimized for mobile app usage:
 - Single API call for all home data
 - Minimal data transfer
 - Fast response time (< 500ms typical)
+- Efficient queries with proper indexing
 
 ---
 

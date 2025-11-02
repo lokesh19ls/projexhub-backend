@@ -211,6 +211,124 @@ export class DevService {
     return parseInt(result.rows[0].count);
   }
 
+  async updateProjectProgress(
+    projectId: number,
+    developerId: number,
+    data: {
+      progressPercentage?: number;
+      status?: string;
+      progressNote?: string;
+    }
+  ) {
+    // Verify developer is assigned to this project
+    const projectResult = await query(
+      `SELECT p.*, ap.developer_id
+       FROM projects p
+       LEFT JOIN proposals ap ON p.accepted_proposal_id = ap.id
+       WHERE p.id = $1 AND ap.developer_id = $2`,
+      [projectId, developerId]
+    );
+
+    if (projectResult.rows.length === 0) {
+      throw new AppError('Project not found or you are not assigned to this project', 404);
+    }
+
+    const project = projectResult.rows[0];
+
+    // Validate progress percentage (should be 0, 20, 50, or 100)
+    if (data.progressPercentage !== undefined) {
+      if (![0, 20, 50, 100].includes(data.progressPercentage)) {
+        throw new AppError('Progress percentage must be 0, 20, 50, or 100', 400);
+      }
+    }
+
+    // Validate status
+    if (data.status && !['in_progress', 'completed'].includes(data.status)) {
+      throw new AppError('Status must be in_progress or completed', 400);
+    }
+
+    // Auto-set status to completed if progress is 100
+    let finalStatus = data.status;
+    if (data.progressPercentage === 100 && !data.status) {
+      finalStatus = 'completed';
+    }
+
+    // Build update query
+    const updates: string[] = [];
+    const params: any[] = [];
+    let paramCount = 1;
+
+    if (data.progressPercentage !== undefined) {
+      updates.push(`progress_percentage = $${paramCount}`);
+      params.push(data.progressPercentage);
+      paramCount++;
+    }
+
+    if (finalStatus) {
+      updates.push(`status = $${paramCount}`);
+      params.push(finalStatus);
+      paramCount++;
+    }
+
+    if (updates.length === 0) {
+      throw new AppError('No fields to update', 400);
+    }
+
+    params.push(projectId);
+    
+    // Update project
+    const updateResult = await query(
+      `UPDATE projects SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      params
+    );
+
+    const updatedProject = updateResult.rows[0];
+
+    // Create notification for student
+    let notificationTitle = 'Project Progress Updated';
+    let notificationMessage = `Developer updated progress for "${project.title}"`;
+
+    if (finalStatus === 'completed') {
+      notificationTitle = 'Project Completed!';
+      notificationMessage = `Developer marked "${project.title}" as completed`;
+    } else if (data.progressPercentage === 100) {
+      notificationTitle = 'Project Progress: 100%';
+      notificationMessage = `Developer reached 100% progress for "${project.title}"`;
+    } else if (data.progressPercentage === 50) {
+      notificationTitle = 'Project Progress: 50%';
+      notificationMessage = `Developer reached 50% milestone for "${project.title}"`;
+    } else if (data.progressPercentage === 20) {
+      notificationTitle = 'Project Progress: 20%';
+      notificationMessage = `Developer reached 20% milestone for "${project.title}"`;
+    } else if (finalStatus === 'in_progress') {
+      notificationTitle = 'Project Status Updated';
+      notificationMessage = `Developer set "${project.title}" to In Progress`;
+    }
+
+    // Create notification
+    await query(
+      `INSERT INTO notifications (user_id, title, message, type, related_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        project.student_id,
+        notificationTitle,
+        notificationMessage,
+        'progress_update',
+        projectId
+      ]
+    );
+
+    // If progress note provided, we can store it (for now just return it in response)
+    return {
+      project: updatedProject,
+      progressNote: data.progressNote || null,
+      notification: {
+        title: notificationTitle,
+        message: notificationMessage
+      }
+    };
+  }
+
   async browseProjects(developerId: number, filters: {
     status?: string;
     technology?: string;

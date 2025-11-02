@@ -22,6 +22,23 @@ export const devController = {
       offset: req.query.offset ? parseInt(req.query.offset as string) : 0
     });
     res.json(projects);
+  }),
+
+  updateProgress: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const projectId = parseInt(req.params.projectId);
+    const result = await devService.updateProjectProgress(
+      projectId,
+      req.user!.id,
+      {
+        progressPercentage: req.body.progressPercentage,
+        status: req.body.status,
+        progressNote: req.body.progressNote
+      }
+    );
+    res.json({
+      message: 'Project progress updated successfully',
+      ...result
+    });
   })
 };
 

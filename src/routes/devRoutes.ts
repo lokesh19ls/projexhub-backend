@@ -9,6 +9,7 @@ router.use(authenticate);
 
 router.get('/home', devController.getDeveloperHome);
 router.get('/projects', devController.browseProjects);
+router.put('/projects/:projectId/progress', devController.updateProgress);
 
 export default router;
 
