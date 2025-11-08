@@ -6,7 +6,7 @@ export class ReviewService {
   async createReview(projectId: number, reviewerId: number, data: CreateReviewDTO) {
     // Get project details
     const projectResult = await query(
-      `SELECT student_id, accepted_proposal_id,
+      `SELECT student_id, status, accepted_proposal_id,
               (SELECT developer_id FROM proposals WHERE id = accepted_proposal_id) as developer_id
        FROM projects WHERE id = $1`,
       [projectId]
@@ -17,6 +17,14 @@ export class ReviewService {
     }
 
     const project = projectResult.rows[0];
+
+    if (![project.student_id, project.developer_id].includes(reviewerId)) {
+      throw new AppError('You are not authorized to review this project', 403);
+    }
+
+    if (project.status !== 'completed') {
+      throw new AppError('You can submit a review once the project is completed', 400);
+    }
 
     // Determine reviewee
     const revieweeId = reviewerId === project.student_id ? project.developer_id : project.student_id;
