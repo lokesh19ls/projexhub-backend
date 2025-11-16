@@ -66,6 +66,11 @@ export const schemas = {
     comment: Joi.string().max(500).optional()
   }),
 
+  uploadProjectFile: Joi.object({
+    milestonePercentage: Joi.number().integer().valid(20, 50, 100).required(),
+    description: Joi.string().max(1000).optional()
+  }),
+
   withdraw: Joi.object({
     amount: Joi.number().positive().required(),
     method: Joi.string().valid('bank', 'upi').required(),

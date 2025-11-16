@@ -69,6 +69,58 @@ export const projectController = {
       message: 'Project progress tracking data retrieved successfully',
       data: progressData
     });
+  }),
+
+  uploadProjectFile: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const projectId = parseInt(req.params.projectId);
+    const file = req.file as Express.Multer.File | undefined;
+
+    const projectFile = await projectService.uploadProjectFile(
+      projectId,
+      req.user!.id,
+      req.user!.role,
+      file as Express.Multer.File,
+      {
+        milestonePercentage: req.body.milestonePercentage,
+        description: req.body.description
+      }
+    );
+
+    res.status(201).json({
+      message: 'File uploaded successfully',
+      file: projectFile
+    });
+  }),
+
+  getProjectFiles: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const projectId = parseInt(req.params.projectId);
+
+    const files = await projectService.getProjectFiles(
+      projectId,
+      req.user!.id,
+      req.user!.role
+    );
+
+    res.json({
+      message: 'Project files retrieved successfully',
+      files
+    });
+  }),
+
+  deleteProjectFile: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const projectId = parseInt(req.params.projectId);
+    const fileId = parseInt(req.params.fileId);
+
+    await projectService.deleteProjectFile(
+      projectId,
+      fileId,
+      req.user!.id,
+      req.user!.role
+    );
+
+    res.json({
+      message: 'File deleted successfully'
+    });
   })
 };
 

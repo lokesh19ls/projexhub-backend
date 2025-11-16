@@ -1,6 +1,7 @@
 import { query } from '../database/connection';
 import { CreateProjectDTO, UpdateProjectDTO, Project, ProjectStatus } from '../models/Project';
 import { AppError } from '../middleware/errorHandler';
+import { ProjectFile } from '../models/ProjectFile';
 
 export class ProjectService {
   async createProject(studentId: number, data: CreateProjectDTO): Promise<Project> {
@@ -332,6 +333,171 @@ export class ProjectService {
         latestNote: progressHistory.length > 0 ? progressHistory[0].progressNote : null
       }
     };
+  }
+
+  async uploadProjectFile(
+    projectId: number,
+    userId: number,
+    userRole: string,
+    file: Express.Multer.File,
+    data: {
+      milestonePercentage: number;
+      description?: string;
+    }
+  ): Promise<ProjectFile> {
+    if (!file) {
+      throw new AppError('No file uploaded', 400);
+    }
+
+    // Verify project and access
+    const projectResult = await query(
+      `SELECT p.id, p.student_id,
+              ap.developer_id
+       FROM projects p
+       LEFT JOIN proposals ap ON p.accepted_proposal_id = ap.id
+       WHERE p.id = $1`,
+      [projectId]
+    );
+
+    if (projectResult.rows.length === 0) {
+      throw new AppError('Project not found', 404);
+    }
+
+    const project = projectResult.rows[0];
+
+    // Only assigned developer or admin can upload files
+    if (userRole === 'developer') {
+      if (project.developer_id !== userId) {
+        throw new AppError('You are not assigned to this project', 403);
+      }
+    } else if (userRole !== 'admin') {
+      throw new AppError('Only developer or admin can upload files', 403);
+    }
+
+    const fileUrl = `/uploads/${file.filename}`;
+    const fileType = file.mimetype || 'application/octet-stream';
+
+    const result = await query(
+      `INSERT INTO project_files 
+         (project_id, uploaded_by, file_url, file_name, file_type, milestone_percentage, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [
+        projectId,
+        userId,
+        fileUrl,
+        file.originalname,
+        fileType,
+        data.milestonePercentage,
+        data.description || null
+      ]
+    );
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      projectId: row.project_id,
+      uploadedBy: row.uploaded_by,
+      fileUrl: row.file_url,
+      fileName: row.file_name,
+      fileType: row.file_type,
+      milestonePercentage: row.milestone_percentage,
+      description: row.description,
+      createdAt: row.created_at
+    };
+  }
+
+  async getProjectFiles(
+    projectId: number,
+    userId: number,
+    userRole: string
+  ): Promise<any[]> {
+    // Verify project and access
+    const projectResult = await query(
+      `SELECT p.id, p.student_id,
+              ap.developer_id
+       FROM projects p
+       LEFT JOIN proposals ap ON p.accepted_proposal_id = ap.id
+       WHERE p.id = $1`,
+      [projectId]
+    );
+
+    if (projectResult.rows.length === 0) {
+      throw new AppError('Project not found', 404);
+    }
+
+    const project = projectResult.rows[0];
+
+    if (
+      userRole !== 'admin' &&
+      userId !== project.student_id &&
+      userId !== project.developer_id
+    ) {
+      throw new AppError('Unauthorized to view project files', 403);
+    }
+
+    const result = await query(
+      `SELECT pf.*, u.name as uploaded_by_name
+       FROM project_files pf
+       LEFT JOIN users u ON pf.uploaded_by = u.id
+       WHERE pf.project_id = $1
+       ORDER BY pf.created_at DESC`,
+      [projectId]
+    );
+
+    return result.rows.map((row: any) => ({
+      id: row.id,
+      projectId: row.project_id,
+      uploadedBy: {
+        id: row.uploaded_by,
+        name: row.uploaded_by_name
+      },
+      fileUrl: row.file_url,
+      fileName: row.file_name,
+      fileType: row.file_type,
+      milestonePercentage: row.milestone_percentage,
+      description: row.description,
+      createdAt: row.created_at
+    }));
+  }
+
+  async deleteProjectFile(
+    projectId: number,
+    fileId: number,
+    userId: number,
+    userRole: string
+  ): Promise<void> {
+    const result = await query(
+      `SELECT pf.*, p.student_id,
+              ap.developer_id
+       FROM project_files pf
+       JOIN projects p ON pf.project_id = p.id
+       LEFT JOIN proposals ap ON p.accepted_proposal_id = ap.id
+       WHERE pf.id = $1 AND pf.project_id = $2`,
+      [fileId, projectId]
+    );
+
+    if (result.rows.length === 0) {
+      throw new AppError('File not found for this project', 404);
+    }
+
+    const file = result.rows[0];
+
+    // Only admin or the uploader (who is also the assigned developer) can delete
+    if (userRole === 'admin') {
+      // allowed
+    } else if (userRole === 'developer') {
+      if (file.developer_id !== userId || file.uploaded_by !== userId) {
+        throw new AppError('You are not allowed to delete this file', 403);
+      }
+    } else {
+      throw new AppError('Only developer or admin can delete files', 403);
+    }
+
+    await query(
+      `DELETE FROM project_files WHERE id = $1`,
+      [fileId]
+    );
   }
 }
 
