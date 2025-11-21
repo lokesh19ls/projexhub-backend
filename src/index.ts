@@ -52,6 +52,15 @@ async function runMigrations() {
       console.log('⚠️  Progress history table creation skipped (may already exist)');
     }
     
+    // Add fcm_token column to users table
+    try {
+      const { stdout: fcmStdout, stderr: fcmStderr } = await execAsync('node dist/database/migrations/add-fcm-token-column.js');
+      if (fcmStdout) console.log(fcmStdout);
+      if (fcmStderr) console.error(fcmStderr);
+    } catch (fcmError: any) {
+      console.log('⚠️  FCM token column migration skipped (may already exist)');
+    }
+    
     // Then run the main schema migration
     const { stdout, stderr } = await execAsync('node dist/database/migrate.js');
     if (stdout) console.log(stdout);
