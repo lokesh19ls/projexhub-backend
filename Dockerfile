@@ -34,6 +34,7 @@ COPY --from=builder /app/src/database/schema.sql ./dist/database/schema.sql
 
 # Copy migration scripts
 COPY --from=builder /app/src/database/update-phone-to-optional.js ./dist/database/update-phone-to-optional.js
+COPY --from=builder /app/src/database/migrations/add-fcm-token-column.js ./dist/database/migrations/add-fcm-token-column.js
 
 # Create uploads directory
 RUN mkdir -p uploads
