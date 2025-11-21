@@ -54,7 +54,8 @@ export const notificationController = {
     const { fcmToken } = req.body as { fcmToken?: string };
 
     if (!fcmToken) {
-      return res.status(400).json({ message: 'fcmToken is required' });
+      res.status(400).json({ message: 'fcmToken is required' });
+      return;
     }
 
     await updateUserFcmToken(req.user!.id, fcmToken);
