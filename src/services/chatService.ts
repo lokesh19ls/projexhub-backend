@@ -1,6 +1,7 @@
 import { query } from '../database/connection';
 import { SendMessageDTO } from '../models/Chat';
 import { AppError } from '../middleware/errorHandler';
+import { createNotificationAndSendPush } from '../utils/fcm';
 
 export class ChatService {
   async sendMessage(projectId: number, senderId: number, data: SendMessageDTO, fileUrl?: string) {
@@ -40,18 +41,20 @@ export class ChatService {
       ]
     );
 
-    // Create notification for receiver
-    await query(
-      `INSERT INTO notifications (user_id, title, message, type, related_id)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        receiverId,
-        'New Message',
-        `You have a new message for project`,
-        'message',
-        projectId
-      ]
-    );
+    // Create notification + push for receiver
+    await createNotificationAndSendPush({
+      userId: receiverId,
+      title: 'New Message',
+      message: `You have a new message for project "${projectId}"`,
+      type: 'message',
+      relatedId: projectId,
+      data: {
+        projectId,
+        senderId,
+        role: 'chat',
+        screen: 'chat'
+      }
+    });
 
     return result.rows[0];
   }

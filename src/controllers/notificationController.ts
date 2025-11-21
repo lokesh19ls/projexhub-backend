@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { NotificationService } from '../services/notificationService';
 import { asyncHandler } from '../middleware/errorHandler';
+import { updateUserFcmToken } from '../utils/fcm';
 
 const notificationService = new NotificationService();
 
@@ -43,6 +44,22 @@ export const notificationController = {
       req.user!.id
     );
     res.json(result);
+  }),
+
+  /**
+   * Save or update the current user's FCM token.
+   * Flutter should call this after login and whenever the token is refreshed.
+   */
+  saveFcmToken: asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { fcmToken } = req.body as { fcmToken?: string };
+
+    if (!fcmToken) {
+      return res.status(400).json({ message: 'fcmToken is required' });
+    }
+
+    await updateUserFcmToken(req.user!.id, fcmToken);
+
+    res.json({ message: 'FCM token updated successfully' });
   })
 };
 

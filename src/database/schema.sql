@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
     total_ratings INTEGER DEFAULT 0,
     bank_account VARCHAR(255),
     upi_id VARCHAR(255),
+    fcm_token TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

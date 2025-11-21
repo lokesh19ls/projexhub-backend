@@ -1,5 +1,6 @@
 import { query } from '../database/connection';
 import { AppError } from '../middleware/errorHandler';
+import { createNotificationAndSendPush } from '../utils/fcm';
 
 interface DeveloperHomeData {
   developer: {
@@ -329,18 +330,21 @@ export class DevService {
       notificationMessage = `Developer set "${project.title}" to In Progress`;
     }
 
-    // Create notification
-    await query(
-      `INSERT INTO notifications (user_id, title, message, type, related_id)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        project.student_id,
-        notificationTitle,
-        notificationMessage,
-        'progress_update',
-        projectId
-      ]
-    );
+    // Create notification + push
+    await createNotificationAndSendPush({
+      userId: project.student_id,
+      title: notificationTitle,
+      message: notificationMessage,
+      type: 'progress_update',
+      relatedId: projectId,
+      data: {
+        projectId,
+        developerId,
+        progressPercentage: data.progressPercentage ?? updatedProject.progress_percentage,
+        status: finalStatus || updatedProject.status,
+        screen: 'project_progress'
+      }
+    });
 
     // Store progress history (if table exists)
     try {

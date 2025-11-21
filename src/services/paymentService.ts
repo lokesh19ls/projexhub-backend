@@ -2,6 +2,7 @@ import Razorpay from 'razorpay';
 import { query } from '../database/connection';
 import { CreatePaymentDTO, PaymentStatus, PaymentType } from '../models/Payment';
 import { AppError } from '../middleware/errorHandler';
+import { createNotificationAndSendPush } from '../utils/fcm';
 
 // Only initialize Razorpay if credentials are provided
 let razorpay: Razorpay | null = null;
@@ -156,18 +157,21 @@ export class PaymentService {
       );
     }
 
-    // Create notification for developer
-    await query(
-      `INSERT INTO notifications (user_id, title, message, type, related_id)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        payment.developer_id,
-        'Payment Received',
-        `You received a payment of ₹${payment.net_amount}`,
-        'payment',
-        payment.id
-      ]
-    );
+    // Create notification + push for developer
+    await createNotificationAndSendPush({
+      userId: payment.developer_id,
+      title: 'Payment Received',
+      message: `You received a payment of ₹${payment.net_amount}`,
+      type: 'payment',
+      relatedId: payment.id,
+      data: {
+        projectId: payment.project_id,
+        paymentId: payment.id,
+        paymentType: payment.payment_type,
+        milestonePercentage: payment.milestone_percentage,
+        screen: 'payment_history'
+      }
+    });
 
     return { message: 'Payment verified successfully', payment: result.rows[0] };
   }

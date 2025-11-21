@@ -1,6 +1,7 @@
 import { query } from '../database/connection';
 import { CreateProposalDTO, Proposal, ProposalStatus } from '../models/Proposal';
 import { AppError } from '../middleware/errorHandler';
+import { createNotificationAndSendPush } from '../utils/fcm';
 
 export class ProposalService {
   async createProposal(projectId: number, developerId: number, data: CreateProposalDTO): Promise<Proposal> {
@@ -40,18 +41,20 @@ export class ProposalService {
       ]
     );
 
-    // Create notification for student
-    await query(
-      `INSERT INTO notifications (user_id, title, message, type, related_id)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        project.student_id,
-        'New Proposal Received',
-        `You received a new proposal for "${project.title}"`,
-        'proposal',
-        result.rows[0].id
-      ]
-    );
+    // Create notification + push for student
+    await createNotificationAndSendPush({
+      userId: project.student_id,
+      title: 'New Proposal Received',
+      message: `You received a new proposal for "${project.title}"`,
+      type: 'proposal',
+      relatedId: result.rows[0].id,
+      data: {
+        projectId,
+        proposalId: result.rows[0].id,
+        role: 'student',
+        screen: 'proposal_detail'
+      }
+    });
 
     return result.rows[0];
   }
@@ -138,18 +141,20 @@ export class ProposalService {
       ['in_progress', proposalId, proposal.project_id]
     );
 
-    // Create notification for developer
-    await query(
-      `INSERT INTO notifications (user_id, title, message, type, related_id)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        proposal.developer_id,
-        'Proposal Accepted!',
-        `Your proposal for "${project.title}" has been accepted`,
-        'proposal_accepted',
-        proposalId
-      ]
-    );
+    // Create notification + push for developer
+    await createNotificationAndSendPush({
+      userId: proposal.developer_id,
+      title: 'Proposal Accepted!',
+      message: `Your proposal for "${project.title}" has been accepted`,
+      type: 'proposal_accepted',
+      relatedId: proposalId,
+      data: {
+        projectId: proposal.project_id,
+        proposalId,
+        role: 'developer',
+        screen: 'project_detail'
+      }
+    });
 
     return { message: 'Proposal accepted successfully' };
   }
