@@ -75,6 +75,20 @@ export const schemas = {
     amount: Joi.number().positive().required(),
     method: Joi.string().valid('bank', 'upi').required(),
     accountDetails: Joi.string().required()
+  }),
+
+  adminLogin: Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().required()
+  }),
+
+  updateProjectStatus: Joi.object({
+    status: Joi.string().valid('open', 'in_progress', 'completed', 'cancelled').required()
+  }),
+
+  resolveDispute: Joi.object({
+    resolution: Joi.string().valid('favor_student', 'favor_developer', 'partial', 'dismiss').required(),
+    notes: Joi.string().max(1000).optional()
   })
 };
 

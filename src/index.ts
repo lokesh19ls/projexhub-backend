@@ -61,6 +61,15 @@ async function runMigrations() {
       console.log('⚠️  FCM token column migration skipped (may already exist)');
     }
     
+    // Add description column to disputes table
+    try {
+      const { stdout: disputeStdout, stderr: disputeStderr } = await execAsync('node dist/database/migrations/add-dispute-description-column.js');
+      if (disputeStdout) console.log(disputeStdout);
+      if (disputeStderr) console.error(disputeStderr);
+    } catch (disputeError: any) {
+      console.log('⚠️  Dispute description column migration skipped (may already exist)');
+    }
+    
     // Then run the main schema migration
     const { stdout, stderr } = await execAsync('node dist/database/migrate.js');
     if (stdout) console.log(stdout);
