@@ -180,9 +180,40 @@ export class AdminService {
       paramCount++;
     }
 
-    // Get total count
-    const countQuery = queryText.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
-    const countResult = await query(countQuery, params);
+    // Get total count - build a separate count query
+    let countQuery = 'SELECT COUNT(*) as total FROM users u WHERE 1=1';
+    const countParams: any[] = [];
+    let countParamCount = 1;
+
+    if (role) {
+      countQuery += ` AND u.role = $${countParamCount}`;
+      countParams.push(role);
+      countParamCount++;
+    }
+
+    if (isVerified !== undefined) {
+      countQuery += ` AND u.is_verified = $${countParamCount}`;
+      countParams.push(isVerified);
+      countParamCount++;
+    }
+
+    if (isActive !== undefined) {
+      countQuery += ` AND u.is_active = $${countParamCount}`;
+      countParams.push(isActive);
+      countParamCount++;
+    }
+
+    if (search) {
+      countQuery += ` AND (
+        u.name ILIKE $${countParamCount} OR 
+        u.email ILIKE $${countParamCount} OR 
+        u.phone ILIKE $${countParamCount}
+      )`;
+      countParams.push(`%${search}%`);
+      countParamCount++;
+    }
+
+    const countResult = await query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].total) || 0;
 
     // Add pagination
@@ -334,9 +365,33 @@ export class AdminService {
       paramCount++;
     }
 
-    // Get total count
-    const countQuery = queryText.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
-    const countResult = await query(countQuery, params);
+    // Get total count - build a separate count query
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM projects p
+      LEFT JOIN users u ON p.student_id = u.id
+      WHERE 1=1
+    `;
+    const countParams: any[] = [];
+    let countParamCount = 1;
+
+    if (status) {
+      countQuery += ` AND p.status = $${countParamCount}`;
+      countParams.push(status);
+      countParamCount++;
+    }
+
+    if (search) {
+      countQuery += ` AND (
+        p.title ILIKE $${countParamCount} OR 
+        p.description ILIKE $${countParamCount} OR 
+        u.name ILIKE $${countParamCount}
+      )`;
+      countParams.push(`%${search}%`);
+      countParamCount++;
+    }
+
+    const countResult = await query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].total) || 0;
 
     // Add pagination
@@ -481,9 +536,28 @@ export class AdminService {
       paramCount++;
     }
 
-    // Get total count
-    const countQuery = queryText.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
-    const countResult = await query(countQuery, params);
+    // Get total count - build a separate count query
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM payments p
+      WHERE 1=1
+    `;
+    const countParams: any[] = [];
+    let countParamCount = 1;
+
+    if (status) {
+      countQuery += ` AND p.status = $${countParamCount}`;
+      countParams.push(status);
+      countParamCount++;
+    }
+
+    if (paymentType) {
+      countQuery += ` AND p.payment_type = $${countParamCount}`;
+      countParams.push(paymentType);
+      countParamCount++;
+    }
+
+    const countResult = await query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].total) || 0;
 
     // Add pagination
@@ -658,9 +732,32 @@ export class AdminService {
       paramCount++;
     }
 
-    // Get total count
-    const countQuery = queryText.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
-    const countResult = await query(countQuery, params);
+    // Get total count - build a separate count query
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM disputes d
+      LEFT JOIN users u1 ON d.raised_by = u1.id
+      WHERE 1=1
+    `;
+    const countParams: any[] = [];
+    let countParamCount = 1;
+
+    if (status) {
+      // Map 'pending' to 'open' for database query (DB uses 'open', API uses 'pending')
+      const dbStatus = status === 'pending' ? 'open' : status;
+      countQuery += ` AND d.status = $${countParamCount}`;
+      countParams.push(dbStatus);
+      countParamCount++;
+    }
+
+    if (raisedBy) {
+      // Check if raisedBy matches the role of the user who raised the dispute
+      countQuery += ` AND u1.role = $${countParamCount}`;
+      countParams.push(raisedBy);
+      countParamCount++;
+    }
+
+    const countResult = await query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].total) || 0;
 
     // Add pagination
